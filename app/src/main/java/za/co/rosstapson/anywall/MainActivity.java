@@ -28,6 +28,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -71,6 +72,7 @@ public class MainActivity extends FragmentActivity implements LocationListener,
     private static final int METERS_PER_KILOMETER = 1000;
     private static final double OFFSET_CALCULATION_INIT_DIFF = 1.0;
     private static final float OFFSET_CALCULATION_ACCURACY = 0.01f;
+    private static final int MY_PERMISSIONS_REQUEST_LOCATION = 123;
 
 
     private Location currentLocation;
@@ -100,6 +102,13 @@ public class MainActivity extends FragmentActivity implements LocationListener,
         }
         checkGPSenabled();
 
+        // API 23 and up: request permissions at runtime
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    MY_PERMISSIONS_REQUEST_LOCATION);
+
+        }
         locationRequest = LocationRequest.create();
         locationRequest.setInterval(UPDATE_INTERVAL_IN_MILLISECONDS);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
@@ -182,7 +191,14 @@ public class MainActivity extends FragmentActivity implements LocationListener,
             mapFragment.getMapAsync(new OnMapReadyCallback() {
                 @Override
                 public void onMapReady(GoogleMap googleMap) {
-                    googleMap.setMyLocationEnabled(true)
+                    // recheck permissions as per API 23
+                    if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                        // TODO: Consider calling
+                        //    ActivityCompat#requestPermissions
+
+                        return;
+                    }
+                    googleMap.setMyLocationEnabled(true);
                     googleMap.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener() {
                         @Override
                         public void onCameraChange(CameraPosition cameraPosition) {
@@ -226,6 +242,10 @@ public class MainActivity extends FragmentActivity implements LocationListener,
                 startActivity(intent);
             }
         });
+    }
+    //helper method for callbacks.
+    public Context getContext() {
+        return (Context)this;
     }
 
     private void doMapQuery() {
@@ -291,6 +311,10 @@ public class MainActivity extends FragmentActivity implements LocationListener,
                                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
                     }
                     // add a new marker
+                    // how to user getMapAsync() here?
+                    // problem is we're called getMapAsync() already in too many contexts to have
+                    // one easy callback method, and here markerOptions would need
+                    // to be declared "final".
                     Marker marker = mapFragment.getMap().addMarker(markerOptions);
                     mapMarkers.put(post.getObjectId(), marker);
                     if (post.getObjectId().equals(selectedPostObjectId)) {
@@ -317,7 +341,21 @@ public class MainActivity extends FragmentActivity implements LocationListener,
             }
         }
     }
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_LOCATION: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length == 0
+                        || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                     Toast.makeText(this, "Location permission not granted - app will not behave as expected", Toast.LENGTH_LONG).show();
 
+                }
+                return;
+            }
+        }
+    }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -471,16 +509,10 @@ public class MainActivity extends FragmentActivity implements LocationListener,
     }
 
     private void startPeriodicUpdates() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-
-            Toast.makeText(this, "Location permissions not granted", Toast.LENGTH_LONG).show();
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (Application.APPDEBUG) {
+                Log.d(Application.APPTAG, "startPeriodicUpdates(), permissions not granted");
+            }
             return;
         }
         LocationServices.FusedLocationApi.requestLocationUpdates(locationClient, locationRequest, this);
@@ -491,19 +523,16 @@ public class MainActivity extends FragmentActivity implements LocationListener,
     }
 
     private Location getLocation() {
-        // if google services available
+        // recheck google services available
         if (servicesConnected()) {
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 // TODO: Consider calling
                 //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
+
                 Toast.makeText(this, "Location permissions not granted", Toast.LENGTH_LONG).show();
                 return null;
             }
+            // eh???
             return LocationServices.FusedLocationApi.getLastLocation(locationClient);
         }
         else {
@@ -607,7 +636,8 @@ public class MainActivity extends FragmentActivity implements LocationListener,
     }
     //verify that Google Play services is available before making a request.
     private boolean servicesConnected() {
-        int resultCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);
+        GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
+        int resultCode = apiAvailability.isGooglePlayServicesAvailable(this);
         if (ConnectionResult.SUCCESS == resultCode) {
             if (Application.APPDEBUG) {
                 Log.d(Application.APPTAG, "Google Play services available. ZOMG.");
@@ -615,7 +645,7 @@ public class MainActivity extends FragmentActivity implements LocationListener,
             return true;
         }
         else {
-            Dialog dialog = GooglePlayServicesUtil.getErrorDialog(resultCode, this, 0);
+            Dialog dialog = apiAvailability.getErrorDialog(this, resultCode, 0);
             if (dialog != null) {
                 ErrorDialogFragment errorFragment = new ErrorDialogFragment();
                 errorFragment.setDialog(dialog);
