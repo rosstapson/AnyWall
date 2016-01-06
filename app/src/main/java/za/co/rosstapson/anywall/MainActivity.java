@@ -17,6 +17,8 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.view.Menu;
@@ -58,11 +60,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class MainActivity extends FragmentActivity implements LocationListener,
+public class MainActivity extends AppCompatActivity implements LocationListener,
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener {
 
-    private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
+    private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 92;
     private static final int MILLISECONDS_PER_SECOND = 1000;
     private static final int UPDATE_INTERVAL_IN_SECONDS = 5;
     private static final int FAST_CEILING_IN_SECONDS = 1;
@@ -97,6 +99,10 @@ public class MainActivity extends FragmentActivity implements LocationListener,
         radius = Application.getSearchDistance();
         lastRadius = radius;
         setContentView(R.layout.activity_main);
+
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar( toolbar);
+
         if (Application.APPDEBUG) {
             Log.d(Application.APPTAG, "ZOMG. about to check gps enabled.");
         }
@@ -111,7 +117,7 @@ public class MainActivity extends FragmentActivity implements LocationListener,
         }
         locationRequest = LocationRequest.create();
         locationRequest.setInterval(UPDATE_INTERVAL_IN_MILLISECONDS);
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        locationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
         locationRequest.setFastestInterval(FAST_INTERVAL_CEILING_IN_MILLISECONDS);
         locationClient = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
@@ -352,7 +358,6 @@ public class MainActivity extends FragmentActivity implements LocationListener,
                      Toast.makeText(this, "Location permission not granted - app will not behave as expected", Toast.LENGTH_LONG).show();
 
                 }
-                return;
             }
         }
     }
@@ -523,6 +528,7 @@ public class MainActivity extends FragmentActivity implements LocationListener,
     }
 
     private Location getLocation() {
+        Location location = null;
         // recheck google services available
         if (servicesConnected()) {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -533,12 +539,18 @@ public class MainActivity extends FragmentActivity implements LocationListener,
                 return null;
             }
             // eh???
-            return LocationServices.FusedLocationApi.getLastLocation(locationClient);
+            try {
+                location = LocationServices.FusedLocationApi.getLastLocation(locationClient);
+            }
+            catch (Exception e) {
+                if (Application.APPDEBUG) {
+                    Log.d(Application.APPTAG, e.getMessage());
+                }
+            }
         }
-        else {
-            return null;
-        }
+        return location;
     }
+
     private void doListQuery() {
         Location myLoc = (currentLocation == null) ? lastLocation: currentLocation;
         if (myLoc != null){
@@ -570,7 +582,7 @@ public class MainActivity extends FragmentActivity implements LocationListener,
     private void showErrorDialog(int errorCode) {
         // Get the error dialog from Google Play services
         Dialog errorDialog =
-                GooglePlayServicesUtil.getErrorDialog(errorCode, this,
+                GoogleApiAvailability.getInstance().getErrorDialog(this, errorCode,
                         CONNECTION_FAILURE_RESOLUTION_REQUEST);
 
         // If Google Play services can provide an error dialog

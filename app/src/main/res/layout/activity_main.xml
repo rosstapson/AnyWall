@@ -7,7 +7,9 @@
     android:fitsSystemWindows="true"
     tools:context="za.co.rosstapson.anywall.MainActivity">
 
-
+    <include
+        android:id="@+id/toolbar"
+        layout="@layout/toolbar" />
 
     <include layout="@layout/content_main" />
 
