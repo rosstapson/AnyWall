@@ -74,10 +74,6 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-//        ParseUser user = new ParseUser();
-//        user.setUsername(username);
-//        user.setPassword(password);
-
         final ProgressDialog dialog = new ProgressDialog(LoginActivity.this);
         dialog.setMessage(getString(R.string.progress_login));
         dialog.show();

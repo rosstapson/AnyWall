@@ -6,6 +6,7 @@
     <TextView
         android:id="@+id/content_view"
         android:textAppearance="?android:attr/textAppearanceMedium"
+        android:textStyle="bold"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content" />
     <TextView
