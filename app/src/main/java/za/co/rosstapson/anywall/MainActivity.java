@@ -13,6 +13,7 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentActivity;
@@ -27,7 +28,6 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -238,8 +238,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
             public void onClick(View view) {
                 Location myLoc = (currentLocation == null) ? lastLocation : currentLocation;
                 if (myLoc == null) {
-                    Toast.makeText(MainActivity.this,
-                            "Please try again after your location appears on the map.", Toast.LENGTH_LONG).show();
+                    Snackbar.make(findViewById(R.id.coordinator_layout), "Please try again after your location appears on the map", Snackbar.LENGTH_SHORT).show();
                     return;
                 }
 
@@ -355,7 +354,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.length == 0
                         || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                     Toast.makeText(this, "Location permission not granted - app will not behave as expected", Toast.LENGTH_LONG).show();
+                     Snackbar.make(findViewById(R.id.coordinator_layout), "Location permission not granted", Snackbar.LENGTH_SHORT).show();
 
                 }
             }
@@ -535,7 +534,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
                 // TODO: Consider calling
                 //    ActivityCompat#requestPermissions
 
-                Toast.makeText(this, "Location permissions not granted", Toast.LENGTH_LONG).show();
+                Snackbar.make(findViewById(R.id.coordinator_layout), "Location permission not granted", Snackbar.LENGTH_SHORT).show();
                 return null;
             }
             // eh???

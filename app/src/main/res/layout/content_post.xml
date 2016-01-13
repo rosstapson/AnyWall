@@ -12,6 +12,7 @@
     tools:context="za.co.rosstapson.anywall.PostActivity"
     tools:showIn="@layout/activity_post">
 
+
     <EditText
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
